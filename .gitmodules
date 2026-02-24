@@ -1,0 +1,3 @@
+[submodule "vsm-product"]
+	path = vsm-product
+	url = https://github.com/LuisRGomez/vsm-product.git

@@ -1,0 +1,26 @@
+##############################
+# Global Git Ignore for VSM  #
+##############################
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Terraform local state & cache
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/*.tfplan
+
+# Lambda build artifacts
+vsm-agent/dist/
+*.zip
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+
