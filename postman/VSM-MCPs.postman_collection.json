@@ -1,0 +1,653 @@
+{
+	"info": {
+		"_postman_id": "vsm-mcps-collection",
+		"name": "VSM MCPs - Jira & Confluence",
+		"description": "Collection for testing VSM MCPs (Jira and Confluence) deployed on AWS Lambda",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Jira MCP",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{jira_api_url}}/health",
+							"host": ["{{jira_api_url}}"],
+							"path": ["health"]
+						},
+						"description": "Check if Jira MCP service is healthy"
+					}
+				},
+				{
+					"name": "List Tools",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{jira_api_url}}/tools",
+							"host": ["{{jira_api_url}}"],
+							"path": ["tools"]
+						},
+						"description": "List all available Jira MCP tools"
+					}
+				},
+				{
+					"name": "Issues",
+					"item": [
+						{
+							"name": "Get Issue",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_issue\",\n  \"params\": {\n    \"issue_key\": \"PROJ-123\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get issue details by key"
+							}
+						},
+						{
+							"name": "Search Issues",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"search_issues\",\n  \"params\": {\n    \"jql\": \"project = PROJ AND status = 'In Progress'\",\n    \"max_results\": 50\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Search issues using JQL"
+							}
+						},
+						{
+							"name": "Create Story",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"create_story\",\n  \"params\": {\n    \"project_key\": \"PROJ\",\n    \"summary\": \"Test Story from Postman\",\n    \"description\": \"This is a test story created via Postman\",\n    \"assignee_account_id\": null\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Create a new user story"
+							}
+						},
+						{
+							"name": "Assign Issue",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"assign_issue\",\n  \"params\": {\n    \"issue_key\": \"PROJ-123\",\n    \"account_id\": \"account-id-here\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Assign an issue to a user"
+							}
+						},
+						{
+							"name": "Set Story Points",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"set_story_points\",\n  \"params\": {\n    \"issue_key\": \"PROJ-123\",\n    \"story_points\": 5\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Set story points for an issue"
+							}
+						},
+						{
+							"name": "Add Comment",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"add_comment\",\n  \"params\": {\n    \"issue_key\": \"PROJ-123\",\n    \"comment\": \"This is a test comment from Postman\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Add a comment to an issue"
+							}
+						},
+						{
+							"name": "Transition Issue",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"transition_issue\",\n  \"params\": {\n    \"issue_key\": \"PROJ-123\",\n    \"transition_id\": \"21\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Transition an issue to a different status"
+							}
+						}
+					]
+				},
+				{
+					"name": "Projects",
+					"item": [
+						{
+							"name": "Get Projects",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_projects\",\n  \"params\": {}\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get all projects"
+							}
+						},
+						{
+							"name": "Get Project",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_project\",\n  \"params\": {\n    \"project_key\": \"PROJ\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get project details by key"
+							}
+						}
+					]
+				},
+				{
+					"name": "Sprints",
+					"item": [
+						{
+							"name": "Get Sprints",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_sprints\",\n  \"params\": {\n    \"board_id\": 1,\n    \"state\": \"active\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get sprints for a board"
+							}
+						},
+						{
+							"name": "Create Sprint",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"create_sprint\",\n  \"params\": {\n    \"board_id\": 1,\n    \"name\": \"Sprint 1\",\n    \"goal\": \"Complete initial features\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Create a new sprint"
+							}
+						}
+					]
+				},
+				{
+					"name": "Boards",
+					"item": [
+						{
+							"name": "Get Boards",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_boards\",\n  \"params\": {\n    \"project_key\": \"PROJ\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get boards for a project"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Confluence MCP",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{confluence_api_url}}/health",
+							"host": ["{{confluence_api_url}}"],
+							"path": ["health"]
+						},
+						"description": "Check if Confluence MCP service is healthy"
+					}
+				},
+				{
+					"name": "List Tools",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{confluence_api_url}}/tools",
+							"host": ["{{confluence_api_url}}"],
+							"path": ["tools"]
+						},
+						"description": "List all available Confluence MCP tools"
+					}
+				},
+				{
+					"name": "Pages",
+					"item": [
+						{
+							"name": "Get Page",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_page\",\n  \"params\": {\n    \"page_id\": \"12345\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get page details by ID"
+							}
+						},
+						{
+							"name": "Get Page Content",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_page_content\",\n  \"params\": {\n    \"page_id\": \"12345\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get page content text"
+							}
+						},
+						{
+							"name": "Get Pages",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_pages\",\n  \"params\": {\n    \"space_key\": \"TEST\",\n    \"limit\": 25,\n    \"start\": 0\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get pages in a space"
+							}
+						},
+						{
+							"name": "Create Page",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"create_page\",\n  \"params\": {\n    \"space_key\": \"TEST\",\n    \"title\": \"Test Page from Postman\",\n    \"body\": \"<p>This is a test page created via Postman</p>\",\n    \"parent_id\": null\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Create a new page"
+							}
+						},
+						{
+							"name": "Update Page",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"update_page\",\n  \"params\": {\n    \"page_id\": \"12345\",\n    \"title\": \"Updated Page Title\",\n    \"body\": \"<p>Updated content</p>\",\n    \"version\": 1\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Update an existing page"
+							}
+						},
+						{
+							"name": "Delete Page",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"delete_page\",\n  \"params\": {\n    \"page_id\": \"12345\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Delete a page"
+							}
+						}
+					]
+				},
+				{
+					"name": "Spaces",
+					"item": [
+						{
+							"name": "Get Spaces",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_spaces\",\n  \"params\": {\n    \"limit\": 25,\n    \"start\": 0\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get all spaces"
+							}
+						},
+						{
+							"name": "Get Space",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_space\",\n  \"params\": {\n    \"space_key\": \"TEST\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get space details by key"
+							}
+						}
+					]
+				},
+				{
+					"name": "Search",
+					"item": [
+						{
+							"name": "Search by CQL",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"search_cql\",\n  \"params\": {\n    \"cql\": \"space = TEST\",\n    \"limit\": 25\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Search using CQL (Confluence Query Language)"
+							}
+						},
+						{
+							"name": "Search by Title",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"search_by_title\",\n  \"params\": {\n    \"title\": \"Test Page\",\n    \"space_key\": \"TEST\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Search pages by title"
+							}
+						}
+					]
+				},
+				{
+					"name": "Labels",
+					"item": [
+						{
+							"name": "Get Labels",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"get_labels\",\n  \"params\": {\n    \"page_id\": \"12345\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Get labels for a page"
+							}
+						},
+						{
+							"name": "Add Labels",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"add_labels\",\n  \"params\": {\n    \"page_id\": \"12345\",\n    \"labels\": [\"test\", \"postman\"]\n  }\n}"
+								},
+								"url": {
+									"raw": "{{confluence_api_url}}/tool",
+									"host": ["{{confluence_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Add labels to a page"
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "jira_api_url",
+			"value": "https://r0j5helj8l.execute-api.us-east-1.amazonaws.com",
+			"type": "string"
+		},
+		{
+			"key": "confluence_api_url",
+			"value": "https://34wumz64x3.execute-api.us-east-1.amazonaws.com",
+			"type": "string"
+		}
+	]
+}
+

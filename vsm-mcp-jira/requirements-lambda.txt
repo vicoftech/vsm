@@ -1,0 +1,11 @@
+# Lambda dependencies (excluding boto3 which is in the runtime)
+# HTTP Client
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# Typing backports required by aiohttp and friends
+typing-extensions>=4.9.0
+
+# Utilities
+python-dotenv>=1.0.0
+

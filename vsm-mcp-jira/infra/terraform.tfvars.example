@@ -1,0 +1,22 @@
+# =============================================================================
+# VSM MCP Jira Lambda - Terraform Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+aws_region = "us-east-1"
+environment = "dev"
+
+# Jira Configuration
+jira_base_url  = "https://agentvsm.atlassian.net"
+jira_email     = "mcp-jira-scrum-agent"
+jira_api_token = "YOUR_JIRA_API_TOKEN_HERE"
+
+# Lambda Configuration
+lambda_timeout     = 30
+lambda_memory_size = 256
+log_level          = "INFO"
+log_retention_days = 30
+enable_xray        = false
+
+

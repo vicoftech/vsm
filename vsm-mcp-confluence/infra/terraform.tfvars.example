@@ -1,0 +1,21 @@
+# =============================================================================
+# VSM MCP Confluence Lambda - Terraform Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+aws_region = "us-east-1"
+environment = "dev"
+
+# Confluence Configuration
+confluence_domain   = "agentvsm.atlassian.net"
+confluence_email    = "mcp-jira-scrum-agent"
+confluence_api_token = "YOUR_CONFLUENCE_API_TOKEN_HERE"
+
+# Lambda Configuration
+lambda_timeout     = 30
+lambda_memory_size = 256
+log_retention_days = 30
+enable_xray        = false
+
+
