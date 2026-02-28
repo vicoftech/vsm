@@ -22,13 +22,29 @@ class IssuesTools:
         """
         Get issue by key.
         
+        NOTE: This implementation uses the POST /search/jql endpoint with a
+        JQL query instead of GET /issue/{key}, because this Jira tenant is
+        returning 410 Gone for the classic issues endpoints but accepts
+        /search/jql requests.
+        
         Args:
             issue_key: Issue key (e.g., "PROJ-123")
             
         Returns:
             Issue data
         """
-        return await self.client.get(f"issue/{issue_key}")
+        # Use the same working pattern as search_issues: POST /search/jql
+        jql = f'key = "{issue_key}"'
+        data: Dict[str, Any] = {"jql": jql}
+        
+        result = await self.client.post("search/jql", json_data=data)
+        issues = result.get("issues") or []
+        
+        if not issues:
+            raise ValueError(f"Issue not found: {issue_key}")
+        
+        # Return the first matching issue
+        return issues[0]
 
     async def search_issues(
         self,
@@ -49,16 +65,20 @@ class IssuesTools:
         Returns:
             Search results with issues list
         """
-        params = {
-            "jql": jql,
-            "maxResults": max_results,
-            "startAt": start_at
-        }
+        # Use POST /search/jql with JSON body (matches working curl invocation
+        # that this Jira tenant accepts: {"jql": "project = PROJ"}).
+        # The API on this site appears to reject additional properties, so we
+        # only send "jql" and enforce max_results client-side if needed.
+        data: Dict[str, Any] = {"jql": jql}
         
-        if fields:
-            params["fields"] = ",".join(fields)
+        result = await self.client.post("search/jql", json_data=data)
         
-        return await self.client.get("search", params=params)
+        # Apply client-side max_results limiting if the API returned issues
+        issues = result.get("issues")
+        if isinstance(issues, list) and max_results is not None:
+            result["issues"] = issues[:max_results]
+        
+        return result
 
     async def get_transitions(self, issue_key: str) -> Dict[str, Any]:
         """
@@ -110,13 +130,40 @@ class IssuesTools:
 
     async def create_story(
         self,
-        project: str,
-        summary: str,
+        project: Optional[str] = None,
+        summary: str = "",
         description: Optional[str] = None,
+        project_key: Optional[str] = None,
+        assignee_account_id: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """Create a story."""
-        return await self._create_issue("Story", project, summary, description, **kwargs)
+        """
+        Create a story.
+        
+        Supports both the legacy 'project' parameter and the more explicit
+        'project_key' used by the MCP/HTTP API payloads.
+        
+        Args:
+            project: Jira project key (legacy param)
+            summary: Story summary
+            description: Optional description
+            project_key: Jira project key (preferred param name from MCP)
+            assignee_account_id: Optional assignee accountId
+        """
+        # Resolve project key from either 'project' or 'project_key'
+        proj = project or project_key
+        if not proj:
+            raise ValueError("Missing required 'project' or 'project_key' parameter")
+        
+        # Map assignee_account_id to Jira assignee field if provided
+        if assignee_account_id:
+            # Jira expects: fields.assignee.accountId
+            # Our _create_issue will merge this into fields
+            kwargs.setdefault("assignee", {"accountId": assignee_account_id})
+        
+        # This Jira instance uses Spanish issue type names.
+        # Your working curl uses: "issuetype": { "name": "Tarea" }
+        return await self._create_issue("Tarea", proj, summary, description, **kwargs)
 
     async def create_task(
         self,
@@ -254,23 +301,30 @@ class IssuesTools:
     async def add_comment(
         self,
         issue_key: str,
-        comment_text: str
+        comment_text: Optional[str] = None,
+        comment: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Add comment to issue.
         
         Args:
             issue_key: Issue key
-            comment_text: Comment text
+            comment_text: Comment text (legacy parameter name)
+            comment: Comment text (preferred parameter name from MCP)
             
         Returns:
             Created comment data
         """
+        # Support both 'comment' and 'comment_text' parameter names
+        text = comment or comment_text
+        if not text:
+            raise ValueError("Missing required 'comment' or 'comment_text' parameter")
+        
         data = {
             "body": {
                 "type": "doc",
                 "version": 1,
-                "content": [{"type": "paragraph", "content": [{"type": "text", "text": comment_text}]}]
+                "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}]
             }
         }
         

@@ -78,6 +78,7 @@ TOOLS_REGISTRY = {
     "get_project": ("projects", "get_project"),
     "create_project": ("projects", "create_project"),
     "update_project": ("projects", "update_project"),
+    "delete_project": ("projects", "delete_project"),
     "get_project_roles": ("projects", "get_project_roles"),
     "add_user_to_project": ("projects", "add_user_to_project"),
     

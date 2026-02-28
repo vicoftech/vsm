@@ -93,8 +93,10 @@ class ProjectsTools:
         if description:
             data["description"] = description
         
-        if project_template_key:
-            data["projectTemplateKey"] = project_template_key
+        # Only include projectTemplateKey if it's explicitly provided and not empty
+        # Jira returns "Invalid module key specified" if this field is empty or invalid
+        if project_template_key and project_template_key.strip():
+            data["projectTemplateKey"] = project_template_key.strip()
         
         return await self.client.post("project", json_data=data)
 
@@ -139,6 +141,18 @@ class ProjectsTools:
             Project roles
         """
         return await self.client.get(f"project/{project_key}/role")
+
+    async def delete_project(self, project_key_or_id: str) -> Dict[str, Any]:
+        """
+        Delete a project.
+        
+        Args:
+            project_key_or_id: Project key or ID
+            
+        Returns:
+            Empty dict on success
+        """
+        return await self.client.delete(f"project/{project_key_or_id}")
 
     async def add_user_to_project(
         self,

@@ -240,6 +240,50 @@
 								},
 								"description": "Get project details by key"
 							}
+						},
+						{
+							"name": "Create Project",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"create_project\",\n  \"params\": {\n    \"key\": \"PROJ\",\n    \"name\": \"New Project from Postman\",\n    \"lead\": \"<account-id>\",\n    \"project_type\": \"software\",\n    \"description\": \"Project created from Postman\",\n    \"project_template_key\": \"gh-scrum-template\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Create a new Jira project"
+							}
+						},
+						{
+							"name": "Delete Project",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tool\": \"delete_project\",\n  \"params\": {\n    \"project_key_or_id\": \"PROJ\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{jira_api_url}}/tool",
+									"host": ["{{jira_api_url}}"],
+									"path": ["tool"]
+								},
+								"description": "Delete a Jira project by key or ID"
+							}
 						}
 					]
 				},

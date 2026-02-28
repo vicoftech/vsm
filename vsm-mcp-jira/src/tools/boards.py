@@ -47,7 +47,7 @@ class BoardsTools:
         if board_type:
             params["type"] = board_type
         
-        return await self.client.get("board", params=params)
+        return await self.client.get_agile("board", params=params)
 
     async def create_board(
         self,
@@ -77,7 +77,7 @@ class BoardsTools:
             "filterId": filter_id
         }
         
-        return await self.client.post("board", json_data=data)
+        return await self.client.post_agile("board", json_data=data)
 
     async def get_board(self, board_id: int) -> Dict[str, Any]:
         """
@@ -89,5 +89,5 @@ class BoardsTools:
         Returns:
             Board data
         """
-        return await self.client.get(f"board/{board_id}")
+        return await self.client.get_agile(f"board/{board_id}")
 

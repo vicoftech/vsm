@@ -44,7 +44,7 @@ class SprintsTools:
         if state:
             params["state"] = state
         
-        return await self.client.get(f"board/{board_id}/sprint", params=params)
+        return await self.client.get_agile(f"board/{board_id}/sprint", params=params)
 
     async def create_sprint(
         self,
@@ -79,7 +79,7 @@ class SprintsTools:
         if goal:
             data["goal"] = goal
         
-        return await self.client.post("sprint", json_data=data)
+        return await self.client.post_agile("sprint", json_data=data)
 
     async def add_to_sprint(
         self,
@@ -97,7 +97,7 @@ class SprintsTools:
             Empty dict on success
         """
         data = {"issues": issue_keys}
-        return await self.client.post(f"sprint/{sprint_id}/issue", json_data=data)
+        return await self.client.post_agile(f"sprint/{sprint_id}/issue", json_data=data)
 
     async def start_sprint(self, sprint_id: int) -> Dict[str, Any]:
         """
@@ -110,7 +110,7 @@ class SprintsTools:
             Empty dict on success
         """
         data = {"id": sprint_id}
-        return await self.client.post(f"sprint/{sprint_id}", json_data=data)
+        return await self.client.post_agile(f"sprint/{sprint_id}", json_data=data)
 
     async def complete_sprint(self, sprint_id: int) -> Dict[str, Any]:
         """
@@ -128,7 +128,7 @@ class SprintsTools:
             "id": sprint_id,
             "state": "closed"
         }
-        return await self.client.put(f"sprint/{sprint_id}", json_data=data)
+        return await self.client.put_agile(f"sprint/{sprint_id}", json_data=data)
 
     async def get_sprint(self, sprint_id: int) -> Dict[str, Any]:
         """
@@ -140,5 +140,5 @@ class SprintsTools:
         Returns:
             Sprint data
         """
-        return await self.client.get(f"sprint/{sprint_id}")
+        return await self.client.get_agile(f"sprint/{sprint_id}")
 

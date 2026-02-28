@@ -56,6 +56,7 @@ class JiraClient:
         }
         
         self.api_url = f"{self.base_url}/rest/api/3"
+        self.agile_api_url = f"{self.base_url}/rest/agile/1.0"
 
     def _get_secrets(self) -> Dict[str, str]:
         """
@@ -105,13 +106,43 @@ class JiraClient:
                 params=params,
                 json=json_data
             ) as response:
-                response.raise_for_status()
-                
-                # Handle empty responses
+                # Handle empty responses first
                 if response.status == 204:
                     return {}
                 
-                return await response.json()
+                # Read response body
+                try:
+                    if response.content_type and 'application/json' in response.content_type:
+                        response_body = await response.json()
+                    else:
+                        response_body = await response.text()
+                except Exception:
+                    response_body = await response.text() if response.content else None
+                
+                # If there's an error, include the response body in the exception
+                if response.status >= 400:
+                    error_msg = f"{response.status}, message='{response.reason}', url='{url}'"
+                    if response_body:
+                        if isinstance(response_body, dict):
+                            # Include Jira's error messages if available
+                            error_details = response_body.get("errorMessages", []) or response_body.get("errors", {})
+                            if error_details:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                            else:
+                                # Include full response if no specific error messages found
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                        else:
+                            error_msg += f", response={response_body}"
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=error_msg,
+                        headers=response.headers
+                    )
+                
+                # Return successful response
+                return response_body if isinstance(response_body, dict) else {}
 
     def _request_sync(
         self,
@@ -205,5 +236,148 @@ class JiraClient:
     def delete_sync(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Synchronous DELETE request."""
         return self._request_sync("DELETE", endpoint, params=params)
+
+    # Agile API methods (for boards, sprints, etc.)
+    async def get_agile(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """GET request to Agile API."""
+        url = f"{self.agile_api_url}/{endpoint.lstrip('/')}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                method="GET",
+                url=url,
+                headers=self.headers,
+                params=params
+            ) as response:
+                # Read response body before raising for status
+                try:
+                    if response.content_type and 'application/json' in response.content_type:
+                        response_body = await response.json()
+                    else:
+                        response_body = await response.text()
+                except Exception:
+                    response_body = await response.text() if response.content else None
+                
+                if response.status >= 400:
+                    error_msg = f"{response.status}, message='{response.reason}', url='{url}'"
+                    if response_body:
+                        if isinstance(response_body, dict):
+                            error_details = response_body.get("errorMessages", []) or response_body.get("errors", {})
+                            if error_details:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                            else:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                        else:
+                            error_msg += f", response={response_body}"
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=error_msg,
+                        headers=response.headers
+                    )
+                
+                if response.status == 204:
+                    return {}
+                
+                return response_body if isinstance(response_body, dict) else {}
+
+    async def post_agile(
+        self,
+        endpoint: str,
+        json_data: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """POST request to Agile API."""
+        url = f"{self.agile_api_url}/{endpoint.lstrip('/')}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                method="POST",
+                url=url,
+                headers=self.headers,
+                params=params,
+                json=json_data
+            ) as response:
+                try:
+                    if response.content_type and 'application/json' in response.content_type:
+                        response_body = await response.json()
+                    else:
+                        response_body = await response.text()
+                except Exception:
+                    response_body = await response.text() if response.content else None
+                
+                if response.status >= 400:
+                    error_msg = f"{response.status}, message='{response.reason}', url='{url}'"
+                    if response_body:
+                        if isinstance(response_body, dict):
+                            error_details = response_body.get("errorMessages", []) or response_body.get("errors", {})
+                            if error_details:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                            else:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                        else:
+                            error_msg += f", response={response_body}"
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=error_msg,
+                        headers=response.headers
+                    )
+                
+                if response.status == 204:
+                    return {}
+                
+                return response_body if isinstance(response_body, dict) else {}
+
+    async def put_agile(
+        self,
+        endpoint: str,
+        json_data: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """PUT request to Agile API."""
+        url = f"{self.agile_api_url}/{endpoint.lstrip('/')}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                method="PUT",
+                url=url,
+                headers=self.headers,
+                params=params,
+                json=json_data
+            ) as response:
+                try:
+                    if response.content_type and 'application/json' in response.content_type:
+                        response_body = await response.json()
+                    else:
+                        response_body = await response.text()
+                except Exception:
+                    response_body = await response.text() if response.content else None
+                
+                if response.status >= 400:
+                    error_msg = f"{response.status}, message='{response.reason}', url='{url}'"
+                    if response_body:
+                        if isinstance(response_body, dict):
+                            error_details = response_body.get("errorMessages", []) or response_body.get("errors", {})
+                            if error_details:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                            else:
+                                error_msg += f", response={json.dumps(response_body, ensure_ascii=False)}"
+                        else:
+                            error_msg += f", response={response_body}"
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=error_msg,
+                        headers=response.headers
+                    )
+                
+                if response.status == 204:
+                    return {}
+                
+                return response_body if isinstance(response_body, dict) else {}
 
 
