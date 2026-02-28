@@ -15,6 +15,7 @@ def mock_client():
     client.get = AsyncMock()
     client.post = AsyncMock()
     client.put = AsyncMock()
+    client.delete = AsyncMock()
     return client
 
 
@@ -94,4 +95,16 @@ async def test_update_project(projects_tools, mock_client):
     
     assert result["name"] == "Updated Project"
     mock_client.put.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_project(projects_tools, mock_client):
+    """Test deleting a project."""
+    mock_client.delete.return_value = {}
+    
+    result = await projects_tools.delete_project("PROJ")
+    
+    assert result == {}
+    mock_client.delete.assert_called_once_with("project/PROJ")
+
 
