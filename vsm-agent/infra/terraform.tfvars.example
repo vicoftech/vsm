@@ -1,0 +1,42 @@
+# =============================================================================
+# VSM Agent Lambda - Terraform Variables Example
+# =============================================================================
+
+aws_region  = "us-east-1"
+environment = "dev"
+
+# Lambda Configuration
+lambda_timeout     = 30
+lambda_memory_size = 256
+log_level          = "INFO"
+log_retention_days = 30
+enable_xray        = false
+
+# Cognito Configuration
+# Option 1: Use existing Cognito User Pool
+# cognito_user_pool_id       = "us-east-1_XXXXXXXXX"
+# cognito_user_pool_client_id = "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Option 2: Create new Cognito User Pool (leave empty)
+cognito_user_pool_id       = ""
+cognito_user_pool_client_id = ""
+
+# OAuth Callback URLs (only used when creating new user pool)
+cognito_callback_urls = [
+  "http://localhost:3000/callback",
+  "https://localhost:3000/callback"
+]
+
+cognito_logout_urls = [
+  "http://localhost:3000/logout",
+  "https://localhost:3000/logout"
+]
+
+# CORS Configuration
+cors_allowed_origins = [
+  "*"
+  # For production, specify exact origins:
+  # "https://yourdomain.com",
+  # "https://app.yourdomain.com"
+]
+

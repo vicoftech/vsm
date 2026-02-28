@@ -1,0 +1,730 @@
+{
+	"info": {
+		"_postman_id": "vsm-agent-collection",
+		"name": "VSM Agent - Orchestrator API",
+		"description": "Collection for testing VSM Agent Orchestrator API with Cognito authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Cognito Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-amz-json-1.1"
+							},
+							{
+								"key": "X-Amz-Target",
+								"value": "AWSCognitoIdentityProviderService.InitiateAuth"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\n  \"ClientId\": \"{{cognito_client_id}}\",\n  \"AuthParameters\": {\n    \"USERNAME\": \"{{cognito_username}}\",\n    \"PASSWORD\": \"{{cognito_password}}\"\n  }\n}"
+						},
+						"url": {
+							"raw": "https://cognito-idp.{{aws_region}}.amazonaws.com/",
+							"protocol": "https",
+							"host": [
+								"cognito-idp",
+								"{{aws_region}}",
+								"amazonaws",
+								"com"
+							]
+						},
+						"description": "Authenticate with Cognito using username and password. This will set the access_token, id_token, and refresh_token in the environment."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.AuthenticationResult) {",
+									"        pm.environment.set(\"cognito_access_token\", jsonData.AuthenticationResult.AccessToken);",
+									"        pm.environment.set(\"cognito_id_token\", jsonData.AuthenticationResult.IdToken);",
+									"        pm.environment.set(\"cognito_refresh_token\", jsonData.AuthenticationResult.RefreshToken);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-amz-json-1.1"
+							},
+							{
+								"key": "X-Amz-Target",
+								"value": "AWSCognitoIdentityProviderService.InitiateAuth"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"AuthFlow\": \"REFRESH_TOKEN_AUTH\",\n  \"ClientId\": \"{{cognito_client_id}}\",\n  \"AuthParameters\": {\n    \"REFRESH_TOKEN\": \"{{cognito_refresh_token}}\"\n  }\n}"
+						},
+						"url": {
+							"raw": "https://cognito-idp.{{aws_region}}.amazonaws.com/",
+							"protocol": "https",
+							"host": [
+								"cognito-idp",
+								"{{aws_region}}",
+								"amazonaws",
+								"com"
+							]
+						},
+						"description": "Refresh the access token using the refresh token"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.AuthenticationResult) {",
+									"        pm.environment.set(\"cognito_access_token\", jsonData.AuthenticationResult.AccessToken);",
+									"        pm.environment.set(\"cognito_id_token\", jsonData.AuthenticationResult.IdToken);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Agent Endpoints",
+			"item": [
+				{
+					"name": "Invoke Agent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"What are the current sprint goals?\",\n  \"context\": {\n    \"sprint_id\": \"SPRINT-123\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/invoke",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "invoke"]
+						},
+						"description": "Main agent invocation endpoint - sends a message to the agent and receives orchestrated response"
+					}
+				},
+				{
+					"name": "Sprint Plan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sprint_id\": \"SPRINT-123\",\n  \"board_id\": 1,\n  \"goal\": \"Complete sprint planning\",\n  \"start_date\": \"2024-01-01\",\n  \"end_date\": \"2024-01-14\"\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/sprint/plan",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "sprint", "plan"]
+						},
+						"description": "Plan a sprint"
+					}
+				},
+				{
+					"name": "Sprint Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sprint_id\": \"SPRINT-123\",\n  \"completed_issues\": [\"PROJ-1\", \"PROJ-2\"],\n  \"review_notes\": \"Sprint completed successfully\"\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/sprint/review",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "sprint", "review"]
+						},
+						"description": "Review a completed sprint"
+					}
+				},
+				{
+					"name": "Get Sprint Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/sprint/{{sprint_id}}/status",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "sprint", "{{sprint_id}}", "status"]
+						},
+						"description": "Get the status of a sprint"
+					}
+				},
+				{
+					"name": "Backlog Refinement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_key\": \"PROJ\",\n  \"issue_keys\": [\"PROJ-1\", \"PROJ-2\", \"PROJ-3\"]\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/backlog/refine",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "backlog", "refine"]
+						},
+						"description": "Refine backlog items"
+					}
+				},
+				{
+					"name": "Standup Analysis",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"standup_notes\": \"Completed task A, working on task B\",\n  \"team_member\": \"developer@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/standup/analyze",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "standup", "analyze"]
+						},
+						"description": "Analyze standup notes"
+					}
+				},
+				{
+					"name": "Create Decision Log",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"decision\": \"Use React for frontend\",\n  \"context\": \"Frontend framework selection\",\n  \"rationale\": \"Team expertise and ecosystem\"\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/decision-log/create",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "decision-log", "create"]
+						},
+						"description": "Create a decision log entry"
+					}
+				},
+				{
+					"name": "Agent Chat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Cuales son todos los proyectos activos?\"\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/chat",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "chat"]
+						},
+						"description": "Simple chat endpoint for free-form prompts. Only requires 'message' field. projectKey is optional (defaults to 'VSM')."
+					}
+				},
+				{
+					"name": "Agent Query",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Cuales son todos los proyectos activos?\",\n  \"context\": {\n    \"sprint_id\": \"SPRINT-123\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/query",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "query"]
+						},
+						"description": "Execute an agent query. Accepts 'query' or 'message' field. projectKey is optional (defaults to 'VSM')."
+					}
+				}
+			]
+		},
+		{
+			"name": "Mock Management",
+			"item": [
+				{
+					"name": "Get Mock Config",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/config",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "config"]
+						},
+						"description": "Get mock configuration status"
+					}
+				},
+				{
+					"name": "List Mocks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks?mcpType=jira&enabledOnly=true",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks"],
+							"query": [
+								{
+									"key": "mcpType",
+									"value": "jira"
+								},
+								{
+									"key": "enabledOnly",
+									"value": "true"
+								}
+							]
+						},
+						"description": "List all mocks with optional filters"
+					}
+				},
+				{
+					"name": "Create Mock",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mcp_type\": \"jira\",\n  \"operation\": \"get_issue\",\n  \"description\": \"Mock for get_issue\",\n  \"request_params\": {\n    \"issue_key\": \"PROJ-123\"\n  },\n  \"response\": {\n    \"key\": \"PROJ-123\",\n    \"summary\": \"Mock Issue\"\n  },\n  \"enabled\": true\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks"]
+						},
+						"description": "Create a new mock"
+					}
+				},
+				{
+					"name": "Get Mock",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/{{mock_id}}",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "{{mock_id}}"]
+						},
+						"description": "Get a specific mock by ID"
+					}
+				},
+				{
+					"name": "Update Mock",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"enabled\": false,\n  \"description\": \"Updated mock description\"\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/{{mock_id}}",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "{{mock_id}}"]
+						},
+						"description": "Update a mock"
+					}
+				},
+				{
+					"name": "Delete Mock",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/{{mock_id}}",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "{{mock_id}}"]
+						},
+						"description": "Delete a mock"
+					}
+				},
+				{
+					"name": "Export Mocks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/export?mcpType=jira",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "export"],
+							"query": [
+								{
+									"key": "mcpType",
+									"value": "jira"
+								}
+							]
+						},
+						"description": "Export all mocks"
+					}
+				},
+				{
+					"name": "Import Mocks",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mocks\": [\n    {\n      \"mcp_type\": \"jira\",\n      \"operation\": \"get_issue\",\n      \"description\": \"Mock 1\",\n      \"request_params\": {},\n      \"response\": {}\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/import",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "import"]
+						},
+						"description": "Import multiple mocks"
+					}
+				},
+				{
+					"name": "Test Mock",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mcp_type\": \"jira\",\n  \"operation\": \"get_issue\",\n  \"request_params\": {\n    \"issue_key\": \"PROJ-123\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/test",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "test"]
+						},
+						"description": "Test mock matching"
+					}
+				},
+				{
+					"name": "Load Default Mocks",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/load-defaults",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "load-defaults"]
+						},
+						"description": "Load default mock templates"
+					}
+				},
+				{
+					"name": "Reset Hit Counts",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks/reset-hits",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks", "reset-hits"]
+						},
+						"description": "Reset hit counts for all mocks"
+					}
+				},
+				{
+					"name": "Clear All Mocks",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-confirm-delete",
+								"value": "yes"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cognito_id_token}}"
+							},
+							{
+								"key": "x-tenant-id",
+								"value": "tenant-{{tenant_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{agent_api_url}}/v1/agent/mocks",
+							"host": ["{{agent_api_url}}"],
+							"path": ["v1", "agent", "mocks"]
+						},
+						"description": "Clear all mocks (requires x-confirm-delete: yes header)"
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "agent_api_url",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cognito_client_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "aws_region",
+			"value": "us-east-1",
+			"type": "string"
+		},
+		{
+			"key": "tenant_id",
+			"value": "dev",
+			"type": "string"
+		}
+	]
+}

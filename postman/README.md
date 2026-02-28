@@ -1,11 +1,16 @@
-# VSM MCPs - Postman Collection
+# VSM - Postman Collections
 
-Esta carpeta contiene la colección de Postman y el environment para probar los MCPs de Jira y Confluence desplegados en AWS.
+Esta carpeta contiene las colecciones de Postman y los environments para probar los MCPs de Jira y Confluence, así como el VSM Agent Orchestrator desplegados en AWS.
 
 ## Archivos
 
-- `VSM-MCPs.postman_collection.json` - Colección de Postman con todos los endpoints
-- `VSM-MCPs.postman_environment.json` - Environment con las URLs y variables de configuración
+### MCPs Collections
+- `VSM-MCPs.postman_collection.json` - Colección de Postman con todos los endpoints de Jira y Confluence MCPs
+- `VSM-MCPs.postman_environment.json` - Environment con las URLs y variables de configuración para MCPs
+
+### Agent Collection
+- `VSM-Agent.postman_collection.json` - Colección de Postman con todos los endpoints del VSM Agent Orchestrator
+- `VSM-Agent.postman_environment.json` - Environment con las URLs, Cognito credentials y variables de configuración para el Agent
 
 ## Instalación
 
@@ -71,8 +76,69 @@ Todos los requests de ejecución de herramientas siguen este formato:
 - Las credenciales están configuradas en las variables de entorno de las Lambdas, no se requieren en los requests
 - Todos los endpoints soportan CORS, por lo que pueden ser llamados desde cualquier origen
 
+## VSM Agent Collection
+
+### Instalación
+
+1. Importa la colección `VSM-Agent.postman_collection.json`
+2. Importa el environment `VSM-Agent.postman_environment.json`
+3. Configura las variables en el environment:
+   - `agent_api_url` - URL base del API Gateway del Agent (obtener de Terraform output)
+   - `cognito_client_id` - ID del Cognito User Pool Client (obtener de Terraform output)
+   - `cognito_user_pool_id` - ID del Cognito User Pool (obtener de Terraform output)
+   - `aws_region` - Región de AWS (por defecto: us-east-1)
+   - `tenant_id` - ID del tenant (por defecto: dev)
+
+### Autenticación
+
+1. **Get Cognito Token**: Ejecuta primero el request "Get Cognito Token" en la carpeta "Authentication"
+   - Esto autenticará con el usuario `develop@agentvsm.ia` / `Develop1!`
+   - Los tokens se guardarán automáticamente en las variables del environment
+   - Todos los demás requests usarán automáticamente el token en el header `Authorization`
+
+2. **Refresh Token**: Si el token expira, usa el request "Refresh Token" para obtener un nuevo token
+
+### Estructura de la Colección
+
+#### Authentication
+- **Get Cognito Token** - Autentica con username/password y obtiene tokens
+- **Refresh Token** - Refresca el access token usando el refresh token
+
+#### Agent Endpoints
+- **Invoke Agent** - Endpoint principal de invocación del agente
+- **Sprint Plan** - Planificar un sprint
+- **Sprint Review** - Revisar un sprint completado
+- **Get Sprint Status** - Obtener estado de un sprint
+- **Backlog Refinement** - Refinar items del backlog
+- **Standup Analysis** - Analizar notas de standup
+- **Create Decision Log** - Crear entrada en el log de decisiones
+- **Agent Query** - Ejecutar una consulta al agente
+
+#### Mock Management
+- **Get Mock Config** - Obtener configuración de mocks
+- **List Mocks** - Listar todos los mocks
+- **Create Mock** - Crear un nuevo mock
+- **Get Mock** - Obtener un mock específico
+- **Update Mock** - Actualizar un mock
+- **Delete Mock** - Eliminar un mock
+- **Export Mocks** - Exportar todos los mocks
+- **Import Mocks** - Importar mocks
+- **Test Mock** - Probar matching de mocks
+- **Load Default Mocks** - Cargar mocks por defecto
+- **Reset Hit Counts** - Resetear contadores de hits
+- **Clear All Mocks** - Limpiar todos los mocks
+
+### Credenciales por Defecto
+
+El environment incluye las siguientes credenciales preconfiguradas:
+- **Username**: `develop@agentvsm.ia`
+- **Password**: `Develop1!`
+
+Estas credenciales se usan automáticamente en el request "Get Cognito Token".
+
 ## URLs Actuales (Dev)
 
 - **Jira MCP**: `https://r0j5helj8l.execute-api.us-east-1.amazonaws.com`
 - **Confluence MCP**: `https://34wumz64x3.execute-api.us-east-1.amazonaws.com`
+- **VSM Agent**: Configurar después del despliegue con Terraform (ver output `api_gateway_stage_url`)
 

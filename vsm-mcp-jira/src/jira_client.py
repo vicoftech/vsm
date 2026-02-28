@@ -141,8 +141,8 @@ class JiraClient:
                         headers=response.headers
                     )
                 
-                # Return successful response
-                return response_body if isinstance(response_body, dict) else {}
+                # Return successful response (can be dict or list)
+                return response_body
 
     def _request_sync(
         self,
@@ -280,7 +280,8 @@ class JiraClient:
                 if response.status == 204:
                     return {}
                 
-                return response_body if isinstance(response_body, dict) else {}
+                # Return successful response (can be dict or list)
+                return response_body
 
     async def post_agile(
         self,
@@ -329,7 +330,8 @@ class JiraClient:
                 if response.status == 204:
                     return {}
                 
-                return response_body if isinstance(response_body, dict) else {}
+                # Return successful response (can be dict or list)
+                return response_body
 
     async def put_agile(
         self,
@@ -378,6 +380,7 @@ class JiraClient:
                 if response.status == 204:
                     return {}
                 
-                return response_body if isinstance(response_body, dict) else {}
+                # Return successful response (can be dict or list)
+                return response_body
 
 
