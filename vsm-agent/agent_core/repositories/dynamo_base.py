@@ -8,7 +8,7 @@ around low-level boto3 clients, to keep cold start time low.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     import boto3
@@ -87,5 +87,43 @@ def update_item(
     except ClientError:
         # Treat as best-effort
         return
+
+
+def query_items(
+    table_name: str,
+    key_condition_expression: str,
+    expression_attribute_values: Dict[str, Any],
+    limit: Optional[int] = None,
+    scan_index_forward: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    Best-effort Query wrapper.
+
+    Args:
+        table_name: DynamoDB table name
+        key_condition_expression: KeyConditionExpression string
+        expression_attribute_values: ExpressionAttributeValues dict
+        limit: Optional maximum number of items
+        scan_index_forward: Sort order on range key
+    """
+    client = DynamoClient.client()
+    if not client:
+        return []
+
+    try:
+        params: Dict[str, Any] = {
+            "TableName": table_name,
+            "KeyConditionExpression": key_condition_expression,
+            "ExpressionAttributeValues": expression_attribute_values,
+            "ScanIndexForward": scan_index_forward,
+        }
+        if limit is not None:
+            params["Limit"] = limit
+
+        resp = client.query(**params)
+        return resp.get("Items", [])
+    except ClientError:
+        return []
+
 
 

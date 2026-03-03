@@ -15,6 +15,30 @@ from typing import Any, Dict, Tuple
 from agent_core.config.settings import AgentCoreSettings
 from agent_core.models.agent_context import AgentContext
 from agent_core.repositories.permissions_repo import PermissionsRepository
+from agent_core.repositories.skills_repo import SkillsRepository
+
+
+def _apply_rules(ctx: AgentContext, rules: list[str]) -> AgentContext:
+    """
+    Apply simple in-code rules based on rule IDs from DynamoDB.
+
+    This keeps the behaviour declarative desde la tabla `skills_catalog`
+    sin necesidad de una tabla extra de reglas en esta primera versión.
+    """
+    # Example: require a project parameter for Jira ticket creation
+    if "require_project_param" in rules:
+        project = ctx.resolved_parameters.get("project")
+        if not project:
+            return ctx.with_updates(
+                final_status="fallback",
+                fallback_message=(
+                    "Necesito saber en qué proyecto de Jira crear el ticket. "
+                    "Por favor indicá el código del proyecto (por ejemplo: VSM)."
+                ),
+            )
+
+    # Placeholder for other rules like rate limiting, parameter transforms, etc.
+    return ctx
 
 
 def run(
@@ -27,8 +51,10 @@ def run(
     if not ctx.resolved_skill_id:
         return ctx, {}
 
-    repo = PermissionsRepository(settings=settings)
-    perm = repo.get_permission(ctx.tenant_id, ctx.user_id or "anonymous", ctx.resolved_skill_id)
+    perm_repo = PermissionsRepository(settings=settings)
+    perm = perm_repo.get_permission(
+        ctx.tenant_id, ctx.user_id or "anonymous", ctx.resolved_skill_id
+    )
 
     if not perm or not perm.allowed:
         # Permission denied — mark context as fallback/error but let
@@ -39,11 +65,28 @@ def run(
         )
         return new_ctx, {}
 
-    # For now we don't apply rule-level logic; that will be added later.
+    # Load skill definition from catalog (best-effort)
+    skills_repo = SkillsRepository(settings=settings)
+    skill = skills_repo.get_skill(ctx.resolved_skill_id, version="v1")
+
+    if not skill or not skill.enabled:
+        new_ctx = ctx.with_updates(
+            final_status="fallback",
+            fallback_message=(
+                "La acción que pediste (skill del agente) no está disponible en este entorno."
+            ),
+        )
+        return new_ctx, {}
+
     new_ctx = ctx.with_updates(
-        resolved_mcp_target=perm.mcp_target,
+        resolved_mcp_target=skill.mcp_target or perm.mcp_target,
         allowed_skills=[ctx.resolved_skill_id],
     )
+
+    # Apply simple rule set from skills_catalog
+    if skill.rules:
+        new_ctx = _apply_rules(new_ctx, skill.rules)
+
     return new_ctx, {}
 
 

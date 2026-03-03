@@ -55,8 +55,6 @@ class AgentIntent(Enum):
     QUERY_BACKLOG = "query_backlog"
     QUERY_TEAM_WORKLOAD = "query_team_workload"
     QUERY_METRICS = "query_metrics"
-    QUERY_PROJECTS = "query_projects"
-    QUERY_COMPLETED_ISSUES = "query_completed_issues"
     
     # Acciones de Sprint
     ACTION_PLAN_SPRINT = "action_plan_sprint"
@@ -71,17 +69,6 @@ class AgentIntent(Enum):
     # Acciones de Documentación
     ACTION_CREATE_DECISION_LOG = "action_create_decision_log"
     ACTION_GENERATE_REPORT = "action_generate_report"
-    
-    # Acciones de Proyectos
-    ACTION_CREATE_PROJECT = "action_create_project"
-    
-    # Acciones de Issues
-    ACTION_CREATE_STORY = "action_create_story"
-    ACTION_CREATE_TASK = "action_create_task"
-    ACTION_CREATE_BUG = "action_create_bug"
-    ACTION_ADD_COMMENT = "action_add_comment"
-    ACTION_SET_STORY_POINTS = "action_set_story_points"
-    ACTION_TRANSITION_ISSUE = "action_transition_issue"
     
     # Análisis
     ANALYZE_STANDUP = "analyze_standup"
@@ -793,22 +780,18 @@ class AgentQueryRequest:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AgentQueryRequest":
-        # Support both "query" and "message" as field names
-        query_value = data.get("query") or data.get("message", "")
-        # Use "VSM" as default project key if not provided
-        project_key_value = data.get("projectKey") or data.get("project_key", "VSM")
-        
         return cls(
-            query=query_value,
-            project_key=project_key_value,
+            query=data.get("query", ""),
+            project_key=data.get("projectKey", ""),
             context=QueryContext.from_dict(data.get("context", {}))
         )
 
     def validate(self) -> List[str]:
         errors = []
         if not self.query:
-            errors.append("query (or message) is required")
-        # projectKey is now optional with default "VSM"
+            errors.append("query is required")
+        if not self.project_key:
+            errors.append("projectKey is required")
         return errors
 
 
@@ -976,28 +959,6 @@ class AgentInvokeRequest:
             context=data.get("context"),
             options=data.get("options")
         )
-
-
-@dataclass
-class ChatRequest:
-    """Simple chat request - solo requiere el mensaje."""
-    message: str
-    project_key: Optional[str] = None
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ChatRequest":
-        return cls(
-            message=data.get("message", ""),
-            project_key=data.get("projectKey") or data.get("project_key", "VSM")
-        )
-    
-    def validate(self) -> List[str]:
-        errors = []
-        if not self.message:
-            errors.append("message is required")
-        if len(self.message) > 5000:
-            errors.append("message exceeds maximum length of 5000 characters")
-        return errors
 
 
 @dataclass

@@ -13,6 +13,7 @@ from typing import Any, Dict, Tuple
 
 from agent_core.config.settings import AgentCoreSettings
 from agent_core.models.agent_context import AgentContext
+from agent_core.llm.interpreter import interpret_prompt, LLMInterpreterError
 
 
 def _simple_intent_detection(message: str) -> Dict[str, Any]:
@@ -38,6 +39,27 @@ def _simple_intent_detection(message: str) -> Dict[str, Any]:
             "skill_id": "jira_create_issue",
             "mcp_target": "jira",
         }
+    # Listar historias / backlog / épicas del proyecto
+    if any(
+        w in msg
+        for w in [
+            "historias epicas",
+            "historias épicas",
+            "épicas",
+            "epicas",
+            "epics",
+            "historias",
+            "backlog",
+            "lista las historias",
+            "listame las historias",
+            "listame todas las historias",
+        ]
+    ):
+        return {
+            "intent": "list_backlog",
+            "skill_id": "jira_list_backlog",
+            "mcp_target": "jira",
+        }
     if any(w in msg for w in ["buscar", "search confluence", "documentación"]):
         return {
             "intent": "search_confluence",
@@ -58,26 +80,38 @@ def run(
     settings: AgentCoreSettings,
     extra: Dict[str, Any],
 ) -> Tuple[AgentContext, Dict[str, Any]]:
-    parsed = _simple_intent_detection(ctx.prompt)
-    confidence = 0.92 if parsed["intent"] != "unknown" else 0.4
+    """
+    STEP 3: intentar usar Bedrock (Haiku/Titan) para interpretar el prompt.
 
-    fallback_message = (
-        "No pude determinar la acción. ¿Podés especificar más?"
-        if confidence < settings.pipeline.confidence_threshold
-        else None
-    )
+    NOTA: fallback heurístico deshabilitado temporalmente para forzar
+    visibilidad de errores del LLM en CloudWatch y trazas.
+    """
+    # Intento con LLM (sin fallback heurístico).
+    #
+    # Cualquier fallo de `interpret_prompt` (incluyendo problemas de permisos,
+    # modelo inexistente o JSON inválido) se propagará como LLMInterpreterError
+    # hacia el orquestador, que marcará el pipeline en estado de error.
+    llm_result = interpret_prompt(ctx, settings=settings)
+
+    # Usar SIEMPRE el resultado del LLM, incluso si la confianza es baja
+    # o el intent es "unknown", para poder inspeccionar el comportamiento
+    # real del modelo Titan/Claude.
+    confidence = llm_result.confidence
+    fallback_message = llm_result.fallback_message
 
     new_ctx = ctx.with_updates(
-        intent=parsed["intent"],
-        resolved_skill_id=parsed["skill_id"],
-        resolved_mcp_target=parsed["mcp_target"],
-        resolved_parameters={},
+        intent=llm_result.intent,
+        resolved_skill_id=llm_result.skill_id,
+        resolved_mcp_target=llm_result.mcp_target,
+        resolved_parameters=llm_result.parameters or {},
         confidence=confidence,
         fallback_message=fallback_message,
     )
 
-    # In a future version this step will call Bedrock using settings.llm.interpreter_model
-    meta = {"model_used": settings.llm.interpreter_model, "tokens_used": 0}
+    meta = {
+        "model_used": settings.llm.interpreter_model,
+        "tokens_used": 0,
+    }
     return new_ctx, meta
 
 

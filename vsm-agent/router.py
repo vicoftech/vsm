@@ -208,9 +208,7 @@ def build_response(status_code: int, body: Dict[str, Any],
         "Content-Type": "application/json",
         "X-Content-Type-Options": "nosniff",
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS,PATCH",
         "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Credentials": "true",
     }
     
     if headers:
@@ -272,17 +270,7 @@ def not_found(resource: str, trace_id: str, details: Optional[Dict[str, Any]] = 
     return build_error_response(404, f"{resource.upper()}_NOT_FOUND", f"{resource} not found", trace_id, details)
 
 
-def internal_error(trace_id: str, message: str = "An unexpected error occurred", details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def internal_error(trace_id: str, message: str = "An unexpected error occurred") -> Dict[str, Any]:
     """500 Internal Server Error response."""
-    error_body = {
-        "error": {
-            "code": "INTERNAL_SERVER_ERROR",
-            "message": message,
-            "traceId": trace_id
-        }
-    }
-    if details:
-        error_body["error"]["details"] = details
-    
-    return build_response(500, error_body)
+    return build_error_response(500, "INTERNAL_ERROR", message, trace_id)
 

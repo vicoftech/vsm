@@ -40,3 +40,6 @@ LOG_LEVEL=INFO
 - Para producción, usa AWS Secrets Manager o Parameter Store
 
 
+
+
+

@@ -92,3 +92,6 @@ vsm-mcp-jira/
 - `JIRA_API_TOKEN` - API token de Jira
 
 
+
+
+

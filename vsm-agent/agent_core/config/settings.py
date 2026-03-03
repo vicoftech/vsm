@@ -56,8 +56,14 @@ class LLMSettings:
     @classmethod
     def load(cls) -> "LLMSettings":
         return cls(
-            interpreter_model=_get_env("INTERPRETER_MODEL", "claude-haiku-4-5-20251001"),
-            analyzer_model=_get_env("ANALYZER_MODEL", "claude-haiku-4-5-20251001"),
+            # Por defecto usamos un modelo Titan de texto, no Claude,
+            # para evitar restricciones comerciales específicas.
+            interpreter_model=_get_env(
+                "INTERPRETER_MODEL", "amazon.titan-text-lite-v1"
+            ),
+            analyzer_model=_get_env(
+                "ANALYZER_MODEL", "amazon.titan-text-lite-v1"
+            ),
             bedrock_region=_get_env("BEDROCK_REGION", "us-east-1"),
         )
 

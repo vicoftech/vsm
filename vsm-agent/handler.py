@@ -343,11 +343,12 @@ def handle_agent_invoke(ctx: RequestContext) -> Dict[str, Any]:
             raw_headers=ctx.headers,
         )
 
-        # Map simple string intent to existing enum where possible
+        # Map simple string intent to existing enum where posible
         intent_enum = AgentIntent.UNKNOWN
         intent_map = {
             "create_ticket": AgentIntent.ACTION_PLAN_SPRINT,  # placeholder
             "search_confluence": AgentIntent.QUERY_METRICS,
+            "list_backlog": AgentIntent.QUERY_BACKLOG,
         }
         if core_ctx.intent in intent_map:
             intent_enum = intent_map[core_ctx.intent]  # type: ignore[index]

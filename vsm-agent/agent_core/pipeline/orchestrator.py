@@ -11,6 +11,7 @@ returns an `AgentContext` instance.
 from __future__ import annotations
 
 from time import perf_counter
+import logging
 from typing import Any, Dict, Optional
 
 from agent_core.config.settings import load_settings
@@ -31,6 +32,8 @@ from agent_core.pipeline.steps import (
     resilience_handler,
 )
 
+
+logger = logging.getLogger(__name__)
 
 def _run_step(
     step_number: int,
@@ -54,6 +57,16 @@ def _run_step(
         tokens_used = meta.get("tokens_used", 0)
     except Exception as exc:  # pragma: no cover - defensive
         status = "error"
+        # Log completo del error para debugging (incluye traceback).
+        logger.error(
+            "Agent pipeline step %s (#{}) failed for tenant %s: %s".format(
+                step_number
+            ),
+            step_name,
+            ctx.tenant_id,
+            exc,
+            exc_info=True,
+        )
         new_ctx = ctx.with_updates(
             final_status="error",
             final_response_text="Ocurrió un error inesperado al procesar tu solicitud.",
@@ -134,6 +147,7 @@ def run_agent_pipeline(
     ctx = _run_step(10, "resilience_handler", ctx, resilience_handler.run, settings)
 
     return ctx
+
 
 
 
