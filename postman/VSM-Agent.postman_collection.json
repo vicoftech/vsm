@@ -131,14 +131,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"message\": \"What are the current sprint goals?\",\n  \"context\": {\n    \"sprint_id\": \"SPRINT-123\"\n  }\n}"
+							"raw": "{\n  \"message\": \"Creame un ticket en el proyecto VSM para revisar el timeout del login\",\n  \"projectKey\": \"VSM\"\n}"
 						},
 						"url": {
 							"raw": "{{agent_api_url}}/v1/agent/invoke",
 							"host": ["{{agent_api_url}}"],
 							"path": ["v1", "agent", "invoke"]
 						},
-						"description": "Main agent invocation endpoint - sends a message to the agent and receives orchestrated response"
+						"description": "Main agent invocation endpoint - sends a message to the agent (Agent Core pipeline) and receives orchestrated response"
 					}
 				},
 				{

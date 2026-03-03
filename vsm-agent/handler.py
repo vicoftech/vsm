@@ -32,7 +32,6 @@ from models.schemas import (
     DecisionLogRequest,
     AgentQueryRequest,
     AgentInvokeRequest,
-    ChatRequest,
     AgentResponse,
     OrchestratorMetadata,
     MCPInvocationTrace,
@@ -315,86 +314,98 @@ def handle_agent_invoke(ctx: RequestContext) -> Dict[str, Any]:
     
     logger.info(f"[{ctx.trace_id}] User message: {request.message[:100]}...")
     
-    # Execute agent invocation (main orchestration)
-    orchestrator = OrchestratorService(ctx.tenant_id)
-    data, metadata = orchestrator.invoke_agent(request)
-    
-    # Build response
-    response = AgentResponse(
-        trace_id=ctx.trace_id,
-        correlation_id=ctx.correlation_id,
-        orchestrator_metadata=metadata,
-        data=data
-    )
-    
-    logger.info(f"[{ctx.trace_id}] Agent invocation completed - Intent: {data.intent.value}, Confidence: {data.intent_confidence:.2f}")
-    return build_response(200, response.to_dict())
-
-
-def handle_chat(ctx: RequestContext) -> Dict[str, Any]:
-    """
-    Handle POST /v1/agent/chat
-    
-    Endpoint simple para prompts libres. Solo requiere el mensaje.
-    No requiere contexto, projectKey (usa "VSM" por defecto), ni otros campos.
-    """
+    # Execute agent invocation using the new Agent Core pipeline.
+    #
+    # NOTE: We keep the response contract compatible with the existing
+    # `AgentInvokeData` wrapper so current clients do not break while we
+    # evolve the internal arquitectura. Si algo falla en el nuevo
+    # pipeline, hacemos fallback transparente al orquestador anterior.
     try:
-        logger.info(f"[{ctx.trace_id}] Processing chat request for tenant {ctx.tenant_id}")
-        
-        # Parse and validate request
-        request = ChatRequest.from_dict(ctx.body or {})
-        validation_errors = request.validate()
-        
-        if validation_errors:
-            return bad_request(
-                "Invalid request body",
-                ctx.trace_id,
-                {"validationErrors": validation_errors}
-            )
-        
-        logger.info(f"[{ctx.trace_id}] Chat message: {request.message[:100]}...")
-        
-        # Convert ChatRequest to AgentInvokeRequest for orchestration
-        invoke_request = AgentInvokeRequest(
-            message=request.message,
-            project_key=request.project_key or "VSM",
-            session_id=None,
-            conversation_history=[],
-            context=None,
-            options=None
-        )
-        
-        # Execute agent invocation
-        logger.info(f"[{ctx.trace_id}] Creating orchestrator for tenant {ctx.tenant_id}")
+        from agent_core.pipeline.orchestrator import run_agent_pipeline
+        from models.schemas import AgentInvokeData, AgentIntent, DataSource
+    except ImportError as e:  # pragma: no cover - defensive fallback
+        logger.error(f"[{ctx.trace_id}] Failed to import Agent Core pipeline: {e}")
         orchestrator = OrchestratorService(ctx.tenant_id)
-        
-        logger.info(f"[{ctx.trace_id}] Invoking agent with message: {request.message[:200]}")
-        data, metadata = orchestrator.invoke_agent(invoke_request)
-        
-        # Build response
+        data, metadata = orchestrator.invoke_agent(request)
         response = AgentResponse(
             trace_id=ctx.trace_id,
             correlation_id=ctx.correlation_id,
             orchestrator_metadata=metadata,
-            data=data
+            data=data,
         )
-        
-        logger.info(f"[{ctx.trace_id}] Chat completed - Intent: {data.intent.value}, Confidence: {data.intent_confidence:.2f}")
         return build_response(200, response.to_dict())
-        
-    except Exception as e:
-        error_traceback = traceback.format_exc()
-        logger.error(f"[{ctx.trace_id}] Error in handle_chat: {e}")
-        logger.error(f"[{ctx.trace_id}] Traceback: {error_traceback}")
-        
-        # Include error details in response for debugging
-        error_details = {
-            "error": str(e),
-            "errorType": type(e).__name__,
-            "traceback": error_traceback.split('\n')[-15:] if len(error_traceback.split('\n')) > 15 else error_traceback.split('\n')
+
+    try:
+        core_ctx = run_agent_pipeline(
+            tenant_id=ctx.tenant_id,
+            prompt=request.message,
+            session_id=request.session_id,
+            raw_headers=ctx.headers,
+        )
+
+        # Map simple string intent to existing enum where possible
+        intent_enum = AgentIntent.UNKNOWN
+        intent_map = {
+            "create_ticket": AgentIntent.ACTION_PLAN_SPRINT,  # placeholder
+            "search_confluence": AgentIntent.QUERY_METRICS,
         }
-        
-        return internal_error(ctx.trace_id, f"Error processing chat request: {str(e)}", error_details)
+        if core_ctx.intent in intent_map:
+            intent_enum = intent_map[core_ctx.intent]  # type: ignore[index]
+
+        invoke_data = AgentInvokeData(
+            response=core_ctx.final_response_text or "",
+            intent=intent_enum,
+            intent_confidence=core_ctx.confidence,
+            mcp_calls_summary=[],
+            actions_taken=[],
+            structured_data={"mcpTarget": core_ctx.resolved_mcp_target},
+            suggested_followups=[],
+            data_sources=[
+                DataSource(
+                    source_type=core_ctx.resolved_mcp_target or "unknown",
+                    reference="agent_core_pipeline",
+                )
+            ],
+            warnings=[],
+            session_id=core_ctx.session_id,
+        )
+
+        metadata = OrchestratorMetadata(
+            mcp_calls=[],
+            total_latency_ms=0,
+            tenant_id=ctx.tenant_id,
+            simulated_confidence_score=core_ctx.confidence,
+        )
+
+        response = AgentResponse(
+            trace_id=ctx.trace_id,
+            correlation_id=ctx.correlation_id,
+            orchestrator_metadata=metadata,
+            data=invoke_data,
+        )
+
+        logger.info(
+            f"[{ctx.trace_id}] Agent invocation completed - Intent: {invoke_data.intent.value}, "
+            f"Confidence: {invoke_data.intent_confidence:.2f}"
+        )
+        return build_response(200, response.to_dict())
+
+    except Exception as e:  # pragma: no cover - defensive
+        logger.error(f"[{ctx.trace_id}] Agent Core pipeline failed, falling back: {e}")
+        import traceback as _tb
+
+        logger.error(_tb.format_exc())
+
+        # Fallback to the previous orchestrator implementation
+        orchestrator = OrchestratorService(ctx.tenant_id)
+        data, metadata = orchestrator.invoke_agent(request)
+        response = AgentResponse(
+            trace_id=ctx.trace_id,
+            correlation_id=ctx.correlation_id,
+            orchestrator_metadata=metadata,
+            data=data,
+        )
+        return build_response(200, response.to_dict())
 
 
 # === Mock Management Route Handlers ===
@@ -748,7 +759,6 @@ def handle_load_defaults(ctx: RequestContext) -> Dict[str, Any]:
 
 # Main Agent Invocation Endpoint (Primary Entry Point)
 router.add_route("POST", "/invoke", handle_agent_invoke)
-router.add_route("POST", "/chat", handle_chat)
 
 # Specific Action Endpoints (MCPs)
 router.add_route("POST", "/sprint/plan", handle_sprint_plan)
@@ -815,20 +825,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Extract correlation ID from headers or generate new one
         correlation_id = extract_header(headers, "x-correlation-id") or generate_correlation_id()
         
-        # Extract Cognito user information from request context (JWT authorizer)
-        cognito_user_id = None
-        cognito_username = None
-        cognito_email = None
-        
-        # API Gateway HTTP API v2.0 with JWT authorizer includes claims in requestContext.authorizer.jwt.claims
-        authorizer = request_context.get("authorizer", {})
-        jwt_claims = authorizer.get("jwt", {}).get("claims", {})
-        
-        if jwt_claims:
-            cognito_user_id = jwt_claims.get("sub") or jwt_claims.get("cognito:username")
-            cognito_username = jwt_claims.get("cognito:username") or jwt_claims.get("username")
-            cognito_email = jwt_claims.get("email")
-            logger.info(f"[{trace_id}] Authenticated user: {cognito_username} ({cognito_user_id})")
 
          # Handle CORS preflight
         if method == "OPTIONS":
@@ -838,7 +834,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "Access-Control-Allow-Origin": "*",
                     "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS,PATCH",
                     "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Credentials": "true",
                     "Access-Control-Max-Age": "86400"
                 },
                 "body": ""
@@ -912,49 +907,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Execute handler
         response = handler(ctx)
         
-        # Ensure CORS headers are always present in response
+        # Add trace headers to response
         if "headers" not in response:
             response["headers"] = {}
-        
-        # Add/update CORS headers
-        response["headers"]["Access-Control-Allow-Origin"] = "*"
-        response["headers"]["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-        response["headers"]["Access-Control-Allow-Headers"] = "*"
-        response["headers"]["Access-Control-Allow-Credentials"] = "true"
-        
-        # Add trace headers to response
         response["headers"]["x-trace-id"] = trace_id
         response["headers"]["x-correlation-id"] = correlation_id
-        
-        # Add Cognito user info to response headers (if available)
-        if cognito_user_id:
-            response["headers"]["x-cognito-user-id"] = cognito_user_id
-        if cognito_username:
-            response["headers"]["x-cognito-username"] = cognito_username
         
         return response
         
     except Exception as e:
-        error_traceback = traceback.format_exc()
         logger.error(f"[{trace_id}] Unhandled exception: {e}")
-        logger.error(f"[{trace_id}] Traceback: {error_traceback}")
-        
-        # Include error details in response for debugging
-        error_details = {
-            "error": str(e),
-            "errorType": type(e).__name__,
-            "traceback": error_traceback.split('\n')[-10:] if len(error_traceback.split('\n')) > 10 else error_traceback.split('\n')
-        }
-        
-        error_response = internal_error(trace_id, "An unexpected error occurred", error_details)
-        # Ensure CORS headers are in error response
-        if "headers" not in error_response:
-            error_response["headers"] = {}
-        error_response["headers"]["Access-Control-Allow-Origin"] = "*"
-        error_response["headers"]["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-        error_response["headers"]["Access-Control-Allow-Headers"] = "*"
-        error_response["headers"]["Access-Control-Allow-Credentials"] = "true"
-        return error_response
+        logger.error(traceback.format_exc())
+        return internal_error(trace_id, "An unexpected error occurred")
 
 
 # === Health Check (for testing) ===
